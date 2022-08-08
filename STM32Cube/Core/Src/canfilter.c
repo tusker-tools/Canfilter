@@ -19,6 +19,14 @@ uint32_t TxMailbox;
 CAN_RxHeaderTypeDef RxHeader;
 uint8_t RxData[8];
 uint16_t rpm;
+
+const uint8_t msgFilOrig[3][8] = {"!VA2CN6G", "\"H104051", "xxxxxSAL"};
+
+const uint8_t msgFilMask[3][8] = {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+							{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+							{0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF}};
+
+const uint8_t msgReplace[3][8] = {"Test1234", "Test5678", "Test9876"};
 /* USER CODE END PD */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -78,13 +86,13 @@ void copyData() {
 
 }
 void filtercan(int airbid, uint8_t data[8]) {
-	if (airbid == 0x316) {
-		uint8_t d1 = data[2];
-		uint8_t d2 = data[3];
-		rpm = ((uint16_t) d2 << 8) | d1;
-		rpm = rpm / 6.4;
-	}
-	if(airbid == 0x545){
-
-	}
+		for(uint8_t i; i < 3; i++){
+			for(uint8_t j; j < 8; j++){
+				// Check if content of masked bits matches exactly msgFilOrig
+				if((data[j] & msgFilMask[i][j]) == (data[j] & msgFilOrig[i][j] & msgFilMask[i][j])){
+					// If yes, replace masked bits by content of msgReplace
+					data[j] = (data[j] & ~msgFilMask[i][j]) | (msgFilMask[i][j] & msgReplace[i][j]);
+				}
+			}
+		}
 }
