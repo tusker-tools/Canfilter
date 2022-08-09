@@ -76,6 +76,7 @@ void canloop(CAN_HandleTypeDef *can1, CAN_HandleTypeDef *can2) {
 
 	}
 }
+
 void copyData() {
 	memcpy(TxData, RxData, 8);
 	TxHeader.DLC = RxHeader.DLC;
@@ -84,15 +85,23 @@ void copyData() {
 	TxHeader.IDE = CAN_ID_STD;
 	filtercan(RxHeader.StdId, TxData);
 
+	
 }
 void filtercan(int airbid, uint8_t data[8]) {
-		for(uint8_t i; i < 3; i++){
-			for(uint8_t j; j < 8; j++){
-				// Check if content of masked bits matches exactly msgFilOrig
-				if((data[j] & msgFilMask[i][j]) == (data[j] & msgFilOrig[i][j] & msgFilMask[i][j])){
-					// If yes, replace masked bits by content of msgReplace
-					data[j] = (data[j] & ~msgFilMask[i][j]) | (msgFilMask[i][j] & msgReplace[i][j]);
-				}
+	uint8_t LvMatch = 1;
+	for(uint8_t i=0; i < 3; i++){
+		for(uint8_t j=0; j < 8; j++){
+			// Check if content of data[] masked by msgFilMask matches exactly msgFilOrig[]
+			if((msgFilMask[i][j]) & (data[j] ^ msgFilOrig[i][j])){
+				// Set LvMatch=0 as soon as one bit does not match
+				LvMatch = 0;
 			}
 		}
+		// Replace masked content if whole string matches the target string
+		if(LvMatch){
+			for(uint8_t j=0; j < 8; j++){
+				data[j] = (msgFilMask[i][j] & msgReplace[i][j]) | (data[j]& (~msgFilMask[i][j]));
+			}
+		}
+	}
 }
